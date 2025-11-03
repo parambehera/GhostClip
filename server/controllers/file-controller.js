@@ -6,19 +6,19 @@ export const uploadFileController = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-    const fileBuffer = req.file.buffer; // assuming you're using multer with memoryStorage
+    const fileBuffer = req.file.buffer; // multer memoryStorage
     const originalName = req.file.originalname;
+    const mimeType = req.file.mimetype; // <— grab this
 
-    // Generate a random 4-digit PIN
     const pin = Math.floor(1000 + Math.random() * 9000).toString();
 
-    // Store file in Redis as base64 string with 5-minute expiry
     const fileData = JSON.stringify({
       name: originalName,
       content: fileBuffer.toString("base64"),
+      mimeType, // <— store it
     });
 
-    await redis.setex(`file:${pin}`, 300, fileData); // 300 seconds = 5 minutes
+    await redis.setex(`file:${pin}`, 300, fileData); // expires after 5 min
 
     res.json({ pin });
   } catch (err) {
@@ -36,15 +36,21 @@ export const getFileController = async (req, res) => {
     const fileData = await redis.get(`file:${pin}`);
     if (!fileData) return res.status(404).json({ error: "File not found or expired" });
 
-    const { name, content } = JSON.parse(fileData);
+    const { name, content, mimeType } = JSON.parse(fileData);
     const buffer = Buffer.from(content, "base64");
 
-    // Send file as attachment
-    res.setHeader("Content-Disposition", `attachment; filename="${name}"`);
-    res.setHeader("Content-Type", "application/octet-stream");
+    // Use correct MIME type
+    res.setHeader("Content-Type", mimeType || "application/octet-stream");
+
+    // Option 1: open directly in browser
+    res.setHeader("Content-Disposition", `inline; filename="${name}"`);
+
+    // Option 2: force download
+    // res.setHeader("Content-Disposition", `attachment; filename="${name}"`);
+
     res.send(buffer);
 
-    // Optional: delete from Redis immediately after retrieval
+    // Optional — delete after successful retrieval
     await redis.del(`file:${pin}`);
   } catch (err) {
     console.error(err);

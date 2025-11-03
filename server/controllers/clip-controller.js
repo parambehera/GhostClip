@@ -28,7 +28,7 @@ export const getClip = async (req, res) => {
     console.log(pin);
     if (!pin) return res.status(400).json({ error: "Pin is required" });
 
-    const text = await redis.getdel(`clip:${pin}`);
+   const text = await redis.get(`clip:${pin}`);
     console.log(text);
     if (!text) return res.status(404).json({ error: "Clip expired or not found" });
 

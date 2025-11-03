@@ -74,7 +74,9 @@ const BASE_URL = `${rawBase}/image`;
   return (
     <div className="min-h-screen w-full bg-[#FFFBEA] text-gray-800 p-6">
       <h1 className="text-3xl font-bold text-center mb-10">Send Image Online</h1>
-
+       <p className="text-center text-gray-600 mb-8">
+        Upload an image file and share the generated PIN for others to download it.
+      </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
         {/* ===== Upload Section ===== */}
         <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200 w-full">

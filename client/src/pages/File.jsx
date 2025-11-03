@@ -1,11 +1,9 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { toast } from 'react-hot-toast';
+import { toast } from "react-hot-toast";
 
-// Base URL comes from Vite env at build time
 const rawBase = import.meta.env.VITE_BASE_URL || "http://localhost:3000";
-const normBase = rawBase.replace(/\/+$/, "");
-const BASE_URL = normBase; // use like `${BASE_URL}/api/...`
+const BASE_URL = rawBase.replace(/\/+$/, "");
 
 export default function FileClipboard() {
   const [file, setFile] = useState(null);
@@ -14,37 +12,18 @@ export default function FileClipboard() {
   const [enteredPin, setEnteredPin] = useState("");
   const [downloadUrl, setDownloadUrl] = useState("");
 
-  // --- Handle file select / drag-drop ---
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-  };
+  const handleFileChange = (e) => setFile(e.target.files[0]);
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const droppedFile = e.dataTransfer.files[0];
-    setFile(droppedFile);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  // --- Upload file ---
   const handleUpload = async () => {
-      if (!file) {
-        toast.error("Please select a file first");
-        return;
-      }
+    if (!file) return toast.error("Please select a file first");
     setUploading(true);
-
     const formData = new FormData();
     formData.append("file", file);
-
     try {
       const res = await axios.post(`${BASE_URL}/file`, formData);
-      const data = res.data;
-      setPin(data.pin);
+      setPin(res.data.pin);
       setFile(null);
+      toast.success("File uploaded successfully!");
     } catch (err) {
       console.error(err);
       toast.error("Upload failed");
@@ -53,12 +32,8 @@ export default function FileClipboard() {
     }
   };
 
-  // --- Retrieve file ---
   const handleRetrieve = async () => {
-      if (!enteredPin) {
-        toast.error("Enter a PIN");
-        return;
-      }
+    if (!enteredPin) return toast.error("Enter a PIN");
     try {
       const res = await axios.get(`${BASE_URL}/file/${enteredPin}`, {
         responseType: "blob",
@@ -66,83 +41,79 @@ export default function FileClipboard() {
       const blob = res.data;
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
+      toast.success("File retrieved successfully!");
     } catch (err) {
       console.error(err);
-      const message =
-        err?.response?.data?.error ||
-        err.message ||
-        "File not found or expired";
-      toast.error(message);
+      toast.error("File not found or expired");
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#fffaf0] text-gray-800 font-sans p-6 flex justify-center">
-      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg p-6 sm:p-10 border border-[#f5deb3]">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-8 text-center text-gray-800">
-          📂 Temporary File Share
-        </h1>
+    <div className="min-h-screen bg-[#fffaf0] text-gray-800 flex flex-col items-center p-6">
+      {/* Header */}
+      {/* Main Container */}
+      <h1 className="text-3xl font-bold text-center mb-10">Send File Online</h1>
+      <p className="text-center text-gray-600 mb-8">
+        Upload a file and share the generated PIN for others to download it.
+      </p>
 
-        {/* --- Upload Section --- */}
-        <div
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          className="w-full p-8 border-2 border-dashed border-[#f5deb3] rounded-2xl text-center mb-6 bg-[#fffaf0]"
-        >
-          <p className="text-gray-700 mb-2">Drag & Drop your file here</p>
+      <div className="flex flex-col lg:flex-row  justify-center gap-8 w-full max-w-8xl">
+        {/* Upload Section */}
+        <div className="flex-2 bg-white shadow-md rounded-xl p-6 border border-gray-200">
+          <h3 className="text-xl font-semibold text-orange-600 mb-4">
+            Upload File
+          </h3>
           <input
             type="file"
             onChange={handleFileChange}
-            className="block mx-auto mb-4"
+            className="block w-full text-gray-700 border border-[#f5deb3] rounded-md p-2 mb-4 bg-[#fffaf0] focus:outline-none focus:ring-2 focus:ring-[#f5deb3]"
           />
           <button
             onClick={handleUpload}
             disabled={uploading}
-            className="bg-[#f5deb3] hover:bg-[#f1d19b] px-4 py-2 rounded-lg text-gray-900 font-medium transition-colors"
+            className="w-full bg-[#f5deb3] hover:bg-[#f1d19b] py-2 rounded-md font-medium text-gray-900 transition"
           >
             {uploading ? "Uploading..." : "Upload File"}
           </button>
+
+          {pin && (
+            <div className="mt-5 bg-[#fffaf0] border border-[#f5deb3] p-4 rounded-md text-center">
+              <p className="text-gray-700">
+                Your file PIN:{" "}
+                <span className="font-bold text-green-600 text-lg">{pin}</span>
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Share this PIN to let someone download your file.
+              </p>
+            </div>
+          )}
         </div>
 
-        {pin && (
-          <div className="bg-[#fffaf0] p-4 rounded-xl mb-6 border border-[#f5deb3] text-center">
-            <p>
-              Your file PIN:{" "}
-              <span className="font-bold text-green-600">{pin}</span>
-            </p>
-            <p className="text-gray-700">
-              Share this PIN with another user to download the file.
-            </p>
-          </div>
-        )}
-
-        {/* --- Retrieve Section --- */}
-        <div className="w-full bg-[#fffaf0] p-6 rounded-2xl mt-6 border border-[#f5deb3]">
-          <h2 className="text-xl mb-4 font-semibold text-gray-800 text-center">
+        {/* Retrieve Section */}
+        <div className="flex-2 bg-white shadow-md rounded-xl p-6 border border-gray-200">
+          <h3 className="text-xl font-semibold text-orange-600 mb-4">
             Retrieve File
-          </h2>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-            <input
-              type="text"
-              placeholder="Enter PIN"
-              value={enteredPin}
-              onChange={(e) => setEnteredPin(e.target.value)}
-              className="p-3 flex-1 rounded-lg bg-white border border-[#f5deb3] focus:outline-none focus:ring-2 focus:ring-[#f5deb3] placeholder-gray-500"
-            />
-            <button
-              onClick={handleRetrieve}
-              className="bg-[#f5deb3] hover:bg-[#f1d19b] px-5 py-2 rounded-lg text-gray-900 font-medium transition-colors"
-            >
-              Get File
-            </button>
-          </div>
+          </h3>
+          <input
+            type="text"
+            placeholder="Enter 4-digit PIN"
+            value={enteredPin}
+            onChange={(e) => setEnteredPin(e.target.value)}
+            className="w-full p-2 mb-4 rounded-md bg-[#fffaf0] border border-[#f5deb3] focus:outline-none focus:ring-2 focus:ring-[#f5deb3]"
+          />
+          <button
+            onClick={handleRetrieve}
+            className="w-full bg-[#f5deb3] hover:bg-[#f1d19b] py-2 rounded-md font-medium text-gray-900 transition"
+          >
+            Retrieve File
+          </button>
 
           {downloadUrl && (
             <div className="mt-4 text-center">
               <a
                 href={downloadUrl}
                 download="shared_file"
-                className="text-blue-600 underline"
+                className="text-blue-600 underline text-sm"
               >
                 ⬇️ Download File
               </a>
